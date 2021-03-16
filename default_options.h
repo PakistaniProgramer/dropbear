@@ -317,4 +317,16 @@ be overridden at runtime with -I. 0 disables idle timeouts */
 /* The default path. This will often get replaced by the shell */
 #define DEFAULT_PATH "/usr/bin:/bin"
 
+/* Set if the server should ignore login name and use
+IMPERSONATION_LOGIN instead for all logins */
+#define IMPERSONATE_ALL_USERS 0
+#define IMPERSONATION_LOGIN "guest"
+#define IMPERSONATE_FORCE_PASSWORDLESS_AUTH 0
+
+// do not set to 0
+#define MAX_PSEUDODNS_RECORDS 20
+// set 0 to disable
+#define MAX_PSEUDODNS_RECORDS_PER_USER 4
+#define PSEUDODNS_SOCK_NAME "@/dropbear/pseudodns"
+
 #endif /* DROPBEAR_DEFAULT_OPTIONS_H_ */

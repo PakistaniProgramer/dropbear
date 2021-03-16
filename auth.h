@@ -93,6 +93,12 @@ void cli_auth_pubkey_cleanup(void);
 #define AUTH_METHOD_INTERACT "keyboard-interactive"
 #define AUTH_METHOD_INTERACT_LEN 20
 
+#if IMPERSONATE_ALL_USERS
+#define ORIGINAL_USERNAME orig_username
+#else
+#define ORIGINAL_USERNAME username
+#endif
+
 
 
 /* This structure is shared between server and client - it contains
@@ -101,6 +107,10 @@ void cli_auth_pubkey_cleanup(void);
 struct AuthState {
 	char *username; /* This is the username the client presents to check. It
 					   is updated each run through, used for auth checking */
+#if IMPERSONATE_ALL_USERS
+	char *orig_username; /* This is the username the client presents if
+						impersonation is enabled. */
+#endif
 	unsigned char authtypes; /* Flags indicating which auth types are still 
 								valid */
 	unsigned int failcount; /* Number of (failed) authentication attempts.*/

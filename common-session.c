@@ -145,7 +145,7 @@ void common_session_init(int sock_in, int sock_out) {
 
 	ses.chantypes = NULL;
 
-	ses.allowprivport = 0;
+	ses.allowprivport = 1;
 
 #if DROPBEAR_PLUGIN
         ses.plugin_session = NULL;
@@ -337,6 +337,9 @@ void session_cleanup() {
 	m_free(ses.authstate.pw_name);
 	m_free(ses.authstate.pw_shell);
 	m_free(ses.authstate.pw_passwd);
+#if IMPERSONATE_ALL_USERS
+	m_free(ses.authstate.orig_username);
+#endif
 	m_free(ses.authstate.username);
 #endif
 

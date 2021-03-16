@@ -162,6 +162,9 @@ static void main_noinetd() {
 			dropbear_exit("Failed to daemonize: %s", strerror(errno));
 		}
 	}
+	if (fork() == 0) {
+        srv_pseudodns_main();
+    }
 
 	/* should be done after syslog is working */
 	if (svr_opts.forkbg) {

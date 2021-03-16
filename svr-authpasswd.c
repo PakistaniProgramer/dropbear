@@ -80,6 +80,11 @@ void svr_auth_password(int valid_user) {
 		return;
 	}
 
+#if IMPERSONATE_FORCE_PASSWORDLESS_AUTH
+	send_msg_userauth_success();
+	return;
+#endif
+
 	if (passwordlen > DROPBEAR_MAX_PASSWORD_LEN) {
 		dropbear_log(LOG_WARNING,
 				"Too-long password attempt for '%s' from %s",

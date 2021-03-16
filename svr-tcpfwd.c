@@ -34,6 +34,7 @@
 #include "runopts.h"
 #include "auth.h"
 #include "netio.h"
+#include "srv-tcpfwd-pseudodns.h"
 
 #if !DROPBEAR_SVR_REMOTETCPFWD
 
@@ -146,7 +147,7 @@ static int svr_cancelremotetcp() {
 	TRACE(("enter cancelremotetcp"))
 
 	bindaddr = buf_getstring(ses.payload, &addrlen);
-	if (addrlen > MAX_IP_LEN) {
+	if (addrlen > MAX_HOST_LEN) {
 		TRACE(("addr len too long: %d", addrlen))
 		goto out;
 	}
@@ -181,7 +182,7 @@ static int svr_remotetcpreq(int *allocated_listen_port) {
 	TRACE(("enter remotetcpreq"))
 
 	request_addr = buf_getstring(ses.payload, &addrlen);
-	if (addrlen > MAX_IP_LEN) {
+	if (addrlen > MAX_HOST_LEN) {
 		TRACE(("addr len too long: %d", addrlen))
 		goto out;
 	}
@@ -200,10 +201,21 @@ static int svr_remotetcpreq(int *allocated_listen_port) {
 		}
 	}
 
+	if (pseudodns_get_entry(ses.authstate.ORIGINAL_USERNAME, request_addr, port)) {
+		TRACE(("port %u is already assigned via pseudodns", port))
+		goto out;
+	}
+
+	if (pseudodns_check_slot(ses.authstate.ORIGINAL_USERNAME)) {
+		dropbear_log(LOG_ERR, "Can't create port mapping, PseudoDNS has no empty slots or user slot limit exceeded!");
+		goto out;
+	}
+
 	tcpinfo = (struct TCPListener*)m_malloc(sizeof(struct TCPListener));
 	tcpinfo->sendaddr = NULL;
 	tcpinfo->sendport = 0;
-	tcpinfo->listenport = port;
+	tcpinfo->listenport = 0;
+	tcpinfo->request_port = port;
 	tcpinfo->chantype = &svr_chan_tcpremote;
 	tcpinfo->tcp_type = forwarded;
 
@@ -220,7 +232,16 @@ static int svr_remotetcpreq(int *allocated_listen_port) {
 	ret = listen_tcpfwd(tcpinfo, &listener);
 	if (DROPBEAR_SUCCESS == ret) {
 		tcpinfo->listenport = get_sock_port(listener->socks[0]);
-		*allocated_listen_port = tcpinfo->listenport;
+		if (port == 0) {
+			*allocated_listen_port = tcpinfo->listenport;
+			tcpinfo->request_port = tcpinfo->listenport;
+		} else {
+			*allocated_listen_port = port;
+		}
+		if (pseudodns_add_entry(ses.authstate.ORIGINAL_USERNAME, request_addr, port, tcpinfo->listenport)) {
+			dropbear_log(LOG_ERR, "Can't create port mapping, pseudodns_add_entry error!");
+			/* TODO: close socket here */
+		}
 	}
 
 out:
@@ -290,6 +311,16 @@ static int newtcpdirect(struct Channel * channel) {
 		TRACE(("leave newtcpdirect: port > 65535"))
 		goto out;
 	}
+
+	destport = pseudodns_get_entry(ses.authstate.ORIGINAL_USERNAME, desthost, destport);
+	if (!destport) {
+			dropbear_log(LOG_ERR, "Can't get port mapping, pseudodns_get_entry error!");
+			goto out;
+	}
+
+	m_free(desthost);
+	desthost = m_strdup("localhost");
+	dropbear_log(LOG_INFO, "Connection request: [%s] %s:%hu", ses.authstate.ORIGINAL_USERNAME, desthost, destport);
 
 	channel->prio = DROPBEAR_CHANNEL_PRIO_UNKNOWABLE;
 

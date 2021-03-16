@@ -42,6 +42,8 @@ struct TCPListener {
 	unsigned int listenport;
 	/* The address that the remote host asked to listen on */
 	char *request_listenaddr;
+	/* The port that the remote host asked to listen on */
+	unsigned int request_port;
 
 	const struct ChanType *chantype;
 	enum {direct, forwarded} tcp_type;

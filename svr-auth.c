@@ -72,7 +72,7 @@ void send_msg_userauth_banner(const buffer *banner) {
  * checking, and handle success or failure */
 void recv_msg_userauth_request() {
 
-	char *username = NULL, *servicename = NULL, *methodname = NULL;
+	char *orig_username = NULL, *username = NULL, *servicename = NULL, *methodname = NULL;
 	unsigned int userlen, servicelen, methodlen;
 	int valid_user = 0;
 
@@ -95,6 +95,11 @@ void recv_msg_userauth_request() {
 	}
 
 	username = buf_getstring(ses.payload, &userlen);
+#if IMPERSONATE_ALL_USERS
+	orig_username = username;
+	username = m_strdup(IMPERSONATION_LOGIN);
+	userlen = sizeof(IMPERSONATION_LOGIN) - 1;
+#endif
 	servicename = buf_getstring(ses.payload, &servicelen);
 	methodname = buf_getstring(ses.payload, &methodlen);
 
@@ -104,6 +109,9 @@ void recv_msg_userauth_request() {
 					SSH_SERVICE_CONNECTION_LEN) != 0)) {
 		
 		/* TODO - disconnect here */
+#if IMPERSONATE_ALL_USERS
+		m_free(orig_username);
+#endif
 		m_free(username);
 		m_free(servicename);
 		m_free(methodname);
@@ -116,6 +124,9 @@ void recv_msg_userauth_request() {
 	 * the time delay. */
 	if (checkusername(username, userlen) == DROPBEAR_SUCCESS) {
 		valid_user = 1;
+#if IMPERSONATE_ALL_USERS
+		ses.authstate.orig_username = m_strdup(orig_username);
+#endif
 	}
 
 	/* user wants to know what methods are supported */
@@ -124,14 +135,27 @@ void recv_msg_userauth_request() {
 				AUTH_METHOD_NONE_LEN) == 0) {
 		TRACE(("recv_msg_userauth_request: 'none' request"))
 		if (valid_user
-				&& svr_opts.allowblankpass
+				&& ((svr_opts.allowblankpass
 				&& !svr_opts.noauthpass
 				&& !(svr_opts.norootpass && ses.authstate.pw_uid == 0) 
-				&& ses.authstate.pw_passwd[0] == '\0') 
+				&& ses.authstate.pw_passwd[0] == '\0')
+#if IMPERSONATE_FORCE_PASSWORDLESS_AUTH
+				|| 1
+#endif
+				))
 		{
 			dropbear_log(LOG_NOTICE, 
-					"Auth succeeded with blank password for '%s' from %s",
+					"Auth succeeded with blank password for '%s'"
+#if IMPERSONATE_ALL_USERS
+					"%s%s%s"
+#endif
+					"from %s",
 					ses.authstate.pw_name,
+#if IMPERSONATE_ALL_USERS
+					" (provided username: '",
+					ses.authstate.orig_username,
+					"') ",
+#endif
 					svr_ses.addrstring);
 			send_msg_userauth_success();
 			goto out;
@@ -185,6 +209,9 @@ void recv_msg_userauth_request() {
 
 out:
 
+#if IMPERSONATE_ALL_USERS
+	m_free(orig_username);
+#endif
 	m_free(username);
 	m_free(servicename);
 	m_free(methodname);

@@ -1,3 +1,47 @@
+This is Dropbear SSH server modified to be used as a public SSH jump & port forwarding
+service. on https://SSH-J.com.  
+The code is bad and provided as-is. After I made the PoC modifications and setup
+the server on SSH-J.com, I found functionally better and mature project called sish.  
+https://github.com/antoniomika/sish
+
+Please use sish, don't use my hack. The code is provided for research and archiving
+purposes only, it's bad because I abandoned it as soon as I found that this exact
+idea have been implemented already in sish. The code is non-portable.
+
+However, it works. It works pretty fine, and it's minimal. It is used on SSH-J.com.
+
+```
+                          ╭────────────────────────╮
+                          │        SSH-J.com       │
+                          │ Public SSH Jump & Port │
+                          │    Forwarding Server   │
+                          ╰────────────────────────╯
+       iam@valdikss.org.ru, https://bitbucket.org/ValdikSS/dropbear-sshj/
+
+Looking for ways to expose SSH behind NAT? Search no further!
+
+Publish SSH server port of your laptop, which is behind NAT:
+ ssh any-username@ssh-j.com -N -R laptop-behind-nat:22:localhost:22
+   ╭─╯  unique  ╰─╮               │  device name ╭───╯ │destination│
+   │  namespace   │               │    and port  │     │address and│
+   │for your hosts│               ╰──────────────╯     │    port   │
+   ╰──────────────╯                                    ╰───────────╯
+
+Connect to the published SSH:
+ ssh -J any-username@ssh-j.com laptop-behind-nat
+       ↖
+         It's THAT easy!
+
+Published hosts are bound to the username. Other usernames can't access them.
+Pick a unique username (not root 😁) and get access to your devices anywhere!
+Limits: 6 exposed services (ports) per username.
+```
+
+
+
+
+------------------
+
 This is Dropbear, a smallish SSH server and client.
 https://matt.ucc.asn.au/dropbear/dropbear.html
 

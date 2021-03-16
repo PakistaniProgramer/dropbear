@@ -60,7 +60,7 @@
 #define MAX_CMD_LEN 9000 /* max length of a command */
 #define MAX_TERM_LEN 200 /* max length of TERM name */
 
-#define MAX_HOST_LEN 254 /* max hostname len for tcp fwding */
+#define MAX_HOST_LEN 64 /* max hostname len for tcp fwding */
 #define MAX_IP_LEN 15 /* strlen("255.255.255.255") == 15 */
 
 #define DROPBEAR_MAX_PORTS 10 /* max number of ports which can be specified,

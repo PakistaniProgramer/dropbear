@@ -32,12 +32,16 @@
 #include "listener.h"
 #include "listener.h"
 #include "runopts.h"
+#include "srv-tcpfwd-pseudodns.h"
 
 #if DROPBEAR_TCP_ACCEPT
 
 static void cleanup_tcp(const struct Listener *listener) {
 
 	struct TCPListener *tcpinfo = (struct TCPListener*)(listener->typedata);
+	if (pseudodns_remove_entry(tcpinfo->listenport)) {
+			dropbear_log(LOG_ERR, "Can't remove pseudodns_remove_entry!");
+	}
 
 	m_free(tcpinfo->sendaddr);
 	m_free(tcpinfo->listenaddr);
@@ -88,7 +92,7 @@ static void tcp_acceptor(const struct Listener *listener, int sock) {
 			/* "forwarded-tcpip" */
 			/* address that was connected, port that was connected */
 			addr = tcpinfo->request_listenaddr;
-			port = tcpinfo->listenport;
+			port = tcpinfo->request_port;
 		}
 
 		if (addr == NULL) {
